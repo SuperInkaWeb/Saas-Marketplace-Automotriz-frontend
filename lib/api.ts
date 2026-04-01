@@ -19,6 +19,7 @@ export async function apiFetch<T = unknown>(
     ...init,
     headers: {
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(init.body && typeof init.body === "string" ? { "Content-Type": "application/json" } : {}),
       ...(headers ?? {}),
     },
   });

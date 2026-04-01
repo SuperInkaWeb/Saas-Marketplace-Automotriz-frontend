@@ -34,8 +34,8 @@ export function getRole(): AppRole | null {
   const raw = localStorage.getItem(ROLE_KEY);
   if (!raw) return null;
   const normalized = raw.toUpperCase().replace(/^ROLE_/, "");
-  if (normalized === "ADMIN") return "ADMIN";
+  if (normalized === "ADMIN" || normalized === "ADMINISTRADOR") return "ADMIN";
   if (normalized === "CLIENTE") return "CLIENTE";
-  if (normalized === "EMPRESA") return "EMPRESA";
+  if (normalized === "EMPRESA" || normalized === "NEGOCIO" || normalized === "BUSINESS") return "EMPRESA";
   return null;
 }

@@ -4,9 +4,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
-import { register } from "../../lib/auth";
+import { register } from "../../../lib/auth";
 
-type Role = "CLIENTE" | "NEGOCIO";
+type Role = "CLIENTE" | "EMPRESA";
 
 type RegisterForm = {
   name: string;
@@ -90,6 +90,17 @@ export default function RegisterPage() {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-black px-4">
+      {/* Botón Volver */}
+      <button 
+        onClick={() => router.push("/")} 
+        className="absolute top-8 left-8 group flex items-center gap-2 text-white/70 hover:text-white transition-colors text-sm font-semibold z-50"
+      >
+        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 group-hover:bg-white/20 transition-colors">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        </div>
+        Volver atrás
+      </button>
+
       <form
         onSubmit={handleRegister}
         className="w-full max-w-sm rounded-2xl border border-white/10 bg-white/6 px-8 text-center text-white backdrop-blur"
@@ -302,25 +313,25 @@ export default function RegisterPage() {
             type="button"
             disabled={submitting}
             onClick={() => {
-              setForm((prev) => ({ ...prev, role: "NEGOCIO" }));
+              setForm((prev) => ({ ...prev, role: "EMPRESA" }));
               setFieldErrors((prev) => ({ ...prev, role: undefined }));
               setSubmitError(null);
             }}
             className={[
               "group flex flex-col items-start gap-1 rounded-2xl border p-4 text-left transition",
               "bg-white/5 border-white/10 hover:border-indigo-500/50 hover:bg-white/6",
-              form.role === "NEGOCIO"
+              form.role === "EMPRESA"
                 ? "ring-2 ring-indigo-500/60 border-indigo-500/40"
                 : "ring-0",
               submitting ? "opacity-60" : "",
             ].join(" ")}
-            aria-pressed={form.role === "NEGOCIO"}
+            aria-pressed={form.role === "EMPRESA"}
           >
             <div className="flex items-center gap-2">
               <div
                 className={[
                   "flex h-9 w-9 items-center justify-center rounded-full border transition",
-                  form.role === "NEGOCIO"
+                  form.role === "EMPRESA"
                     ? "border-indigo-400/50 bg-indigo-500/15"
                     : "border-white/10 bg-white/5 group-hover:border-indigo-400/30",
                 ].join(" ")}
@@ -365,7 +376,7 @@ export default function RegisterPage() {
           tabIndex={-1}
         >
           <option value="CLIENTE">Cliente</option>
-          <option value="NEGOCIO">Empresa</option>
+          <option value="EMPRESA">Empresa</option>
         </select>
 
         <button

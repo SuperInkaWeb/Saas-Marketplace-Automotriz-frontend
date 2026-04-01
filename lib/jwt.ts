@@ -24,13 +24,13 @@ export function decodeJwtPayload(token: string): JwtPayload | null {
   }
 }
 
-export type AppRole = "ADMIN" | "CLIENTE" | "EMPRESA";
+export type AppRole = "ADMIN" | "CLIENTE" | "EMPRESA" | "NEGOCIO";
 
 function normalizeRole(value: string): AppRole | null {
   const normalized = value.toUpperCase().replace(/^ROLE_/, "");
-  if (normalized === "ADMIN") return "ADMIN";
+  if (normalized === "ADMIN" || normalized === "ADMINISTRADOR") return "ADMIN";
   if (normalized === "CLIENTE") return "CLIENTE";
-  if (normalized === "EMPRESA") return "EMPRESA";
+  if (normalized === "EMPRESA" || normalized === "NEGOCIO" || normalized === "BUSINESS") return "EMPRESA";
   return null;
 }
 

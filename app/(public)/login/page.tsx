@@ -4,9 +4,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
-import { login } from "../../lib/auth";
-import { getRoleFromToken } from "../../lib/jwt";
-import { setRole, setToken } from "../../lib/session";
+import { login } from "../../../lib/auth";
+import { getRoleFromToken } from "../../../lib/jwt";
+import { setRole, setToken } from "../../../lib/session";
 
 type LoginForm = {
   email: string;
@@ -37,26 +37,44 @@ export default function LoginPage() {
       return;
     }
 
-    try {
-      setSubmitting(true);
-      const data = await login(form.email.trim(), form.password);
-      setToken(data.token);
+ try {
+  setSubmitting(true);
+  const data = await login(form.email.trim(), form.password);
+  setToken(data.token);
 
-      const role = getRoleFromToken(data.token);
-      if (role) setRole(role);
+  // temporal - solo para debug
+console.log("PAYLOAD:", JSON.parse(atob(data.token.split(".")[1])));
 
-      // Siempre entra primero al panel admin; la página /admin valida contra backend
-      // y si no es ADMIN rebota automáticamente a /dashboard.
-      router.push("/admin");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudo iniciar sesión");
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  const role = getRoleFromToken(data.token);
+  if (role) setRole(role);
+
+  if (role === "ADMIN") {
+    router.push("/admin");
+  } else if (role === "EMPRESA") {
+    router.push("/empresa/dashboard");
+  } else {
+    router.push("/cliente/dashboard");
+  }
+} catch (err) {
+  setError(err instanceof Error ? err.message : "No se pudo iniciar sesión");
+} finally {
+  setSubmitting(false);
+}
+  }
 
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-black px-4">
+      {/* Botón Volver */}
+      <button 
+        onClick={() => router.push("/")} 
+        className="absolute top-8 left-8 group flex items-center gap-2 text-white/70 hover:text-white transition-colors text-sm font-semibold z-50"
+      >
+        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 group-hover:bg-white/20 transition-colors">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        </div>
+        Volver atrás
+      </button>
+
       <form
         onSubmit={handleLogin}
         className="w-full max-w-sm rounded-2xl border border-white/10 bg-white/6 px-8 text-center text-white backdrop-blur"
