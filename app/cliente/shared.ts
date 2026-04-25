@@ -20,6 +20,7 @@ export type Booking = {
 export type CartItem = {
   id: number;
   productName?: string | null;
+  businessName?: string | null;
   price?: number | null;
   quantity?: number | null;
   subtotal?: number | null;

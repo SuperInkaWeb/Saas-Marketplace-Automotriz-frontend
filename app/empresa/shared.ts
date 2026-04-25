@@ -38,6 +38,7 @@ export type Product = {
   stock?: number | null;
   supplier?: string | null;
   photoUrl?: string | null;
+  igv?: boolean | null;
 };
 
 export type ClientSummary = {

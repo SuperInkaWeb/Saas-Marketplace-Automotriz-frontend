@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { apiFetch } from "../../../lib/api";
 import { getToken } from "../../../lib/session";
 import { Order } from "../shared";
+import MercadoPagoButton from "../../../components/features/MercadoPagoButton";
 
 export default function ClienteComprasPage() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -60,7 +61,7 @@ export default function ClienteComprasPage() {
       ) : orders.length === 0 ? (
         <div className="bg-white rounded-[2rem] border border-slate-100 p-16 text-center shadow-sm">
           <div className="h-20 w-20 bg-slate-50 rounded-3xl flex items-center justify-center mx-auto mb-6">
-            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-slate-300"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-slate-300"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" /><path d="m3.3 7 8.7 5 8.7-5" /><path d="M12 22V12" /></svg>
           </div>
           <h3 className="text-xl font-bold text-slate-900">Aún no has comprado nada</h3>
           <p className="text-slate-500 mt-2 max-w-sm mx-auto">Explora el marketplace y equipa tu auto con los mejores repuestos.</p>
@@ -77,19 +78,26 @@ export default function ClienteComprasPage() {
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                   <div className="flex items-center gap-4">
                     <div className="h-12 w-12 bg-white rounded-2xl flex items-center justify-center shadow-sm border border-slate-200">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/></svg>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" /><path d="M3 6h18" /></svg>
                     </div>
-                    <div>
-                      <h3 className="font-bold text-slate-900">Pedido #{order.id}</h3>
-                      <p className="text-xs text-slate-500 font-medium">Vendido por <span className="text-blue-600 underline">@{order.businessName}</span> • {new Date(order.createdAt).toLocaleDateString()}</p>
+                    <div className={`px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wide ${getStatusColor(order.status)}`}>
+                      {getStatusLabel(order.status)}
                     </div>
-                  </div>
-                  <div className={`px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wide ${getStatusColor(order.status)}`}>
-                    {getStatusLabel(order.status)}
+                    {/* Se agregaron estos DIVs que faltaban para cerrar la cabecera correctamente */}
                   </div>
                 </div>
               </div>
 
+              {/* Botón de Pago (ahora centrado o alineado bajo la cabecera) */}
+              {order.status === "PENDING" && (
+                <div className="px-6 md:px-8 -mt-2 mb-4">
+                  <MercadoPagoButton
+                    orderId={order.id}
+                    title={order.businessName}
+                    amount={order.totalAmount}
+                  />
+                </div>
+              )}
               {/* Card Body */}
               <div className="p-6 md:p-8">
                 <div className="grid md:grid-cols-2 gap-8">
@@ -141,19 +149,19 @@ export default function ClienteComprasPage() {
                   </div>
                 </div>
               </div>
-              
+
               {/* Footer / Stepper visual */}
               <div className="px-8 pb-8 flex items-center gap-1">
-                {[ "PAID", "PREPARING", "SHIPPED", "DELIVERED" ].map((s, idx) => {
-                  const states = [ "PAID", "PREPARING", "SHIPPED", "DELIVERED" ];
+                {["PAID", "PREPARING", "SHIPPED", "DELIVERED"].map((s, idx) => {
+                  const states = ["PAID", "PREPARING", "SHIPPED", "DELIVERED"];
                   const currentIdx = states.indexOf(order.status);
                   const isDone = states.indexOf(s) <= currentIdx;
                   const isLast = idx === states.length - 1;
-                  
+
                   return (
                     <div key={s} className="flex items-center flex-1 last:flex-none">
                       <div className={`h-2.5 w-2.5 rounded-full ${isDone ? 'bg-blue-600 shadow-[0_0_8px_rgba(37,99,235,0.4)]' : 'bg-slate-200'}`} />
-                      {!isLast && <div className={`h-0.5 flex-1 mx-1 rounded-full ${isDone && states.indexOf(states[idx+1]) <= currentIdx ? 'bg-blue-600' : 'bg-slate-100'}`} />}
+                      {!isLast && <div className={`h-0.5 flex-1 mx-1 rounded-full ${isDone && states.indexOf(states[idx + 1]) <= currentIdx ? 'bg-blue-600' : 'bg-slate-100'}`} />}
                     </div>
                   );
                 })}

@@ -15,14 +15,17 @@ export default function EmpresaInventarioPage() {
   const [formBrand, setFormBrand] = useState("");
   const [formPrice, setFormPrice] = useState("");
   const [formStock, setFormStock] = useState("");
+  const [formIgv, setFormIgv] = useState(false);
   const [adding, setAdding] = useState(false);
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [showProductForm, setShowProductForm] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
 
   useEffect(() => {
     const t = getToken();
     if (!t) return;
+
 
     const loadData = async () => {
       try {
@@ -50,7 +53,35 @@ export default function EmpresaInventarioPage() {
     }
   };
 
-  const handleAddProduct = async (e: React.FormEvent) => {
+  const resetForm = () => {
+    setFormName(""); setFormCategory(""); setFormBrand(""); setFormPrice(""); setFormStock(""); setFormIgv(false);
+    setPhoto(null); setPhotoPreview(null);
+    setShowProductForm(false);
+    setEditingId(null);
+    setError(null);
+  };
+
+  const openForm = () => {
+    resetForm();
+    setShowProductForm(true);
+  };
+
+  const openEdit = (p: Product) => {
+    setFormName(p.name || "");
+    setFormCategory(p.category || "");
+    setFormBrand(p.brand || "");
+    setFormPrice(p.price?.toString() || "");
+    setFormStock(p.stock?.toString() || "");
+    setFormIgv(p.igv || false);
+    setPhotoPreview(p.photoUrl || null);
+    setPhoto(null);
+    setEditingId(p.id);
+    setShowProductForm(true);
+    setError(null);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     const t = getToken();
     if (!t) return;
@@ -58,42 +89,57 @@ export default function EmpresaInventarioPage() {
       setAdding(true);
       setError(null);
       
-      // 1. Crear el producto
-      const newProduct = await apiFetch<Product>("/products", {
-        method: "POST",
-        token: t,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: formName,
-          category: formCategory,
-          brand: formBrand,
-          price: parseFloat(formPrice),
-          stock: parseInt(formStock, 10),
-        }),
-      });
+      const payload = {
+        name: formName,
+        category: formCategory,
+        brand: formBrand,
+        price: parseFloat(formPrice),
+        stock: parseInt(formStock, 10),
+        igv: formIgv,
+      };
 
-      let finalProduct = newProduct;
+      let savedProduct;
 
-      // 2. Subir foto si existe
+      if (editingId) {
+        // Actualizar
+        savedProduct = await apiFetch<Product>(`/products/${editingId}`, {
+          method: "PUT",
+          token: t,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+      } else {
+        // Crear
+        savedProduct = await apiFetch<Product>("/products", {
+          method: "POST",
+          token: t,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+      }
+
+      // Subir foto si interactuó (nueva foto elegida)
       if (photo) {
         const formData = new FormData();
         formData.append("file", photo);
-        finalProduct = await apiFetch<Product>(`/products/${newProduct.id}/photo`, {
+        savedProduct = await apiFetch<Product>(`/products/${savedProduct.id}/photo`, {
           method: "PUT",
           token: t,
           body: formData,
         });
       }
 
-      setProducts(prev => [...prev, finalProduct]);
+      setProducts(prev => {
+        if (editingId) {
+          return prev.map(p => p.id === editingId ? savedProduct : p);
+        }
+        return [...prev, savedProduct];
+      });
 
-      // Reset
-      setFormName(""); setFormCategory(""); setFormBrand(""); setFormPrice(""); setFormStock("");
-      setPhoto(null); setPhotoPreview(null);
-      setShowProductForm(false);
+      resetForm();
 
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al agregar producto");
+      setError(err instanceof Error ? err.message : "Error al guardar producto");
     } finally {
       setAdding(false);
     }
@@ -119,7 +165,7 @@ export default function EmpresaInventarioPage() {
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">Inventario</h1>
           <p className="mt-0.5 text-sm text-slate-500">Stock de repuestos y alertas</p>
         </div>
-        <button type="button" onClick={() => setShowProductForm(!showProductForm)}
+        <button type="button" onClick={showProductForm ? resetForm : openForm}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-500 transition shadow-lg shadow-blue-600/20">
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>
           Nuevo Producto
@@ -134,13 +180,15 @@ export default function EmpresaInventarioPage() {
         {showProductForm && (
           <div className="bg-white rounded-2xl border border-slate-100 shadow-xl p-6 animate-in slide-in-from-top-4 duration-300">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-bold text-slate-900 uppercase tracking-tight">Crear nuevo producto</h2>
-              <button onClick={() => setShowProductForm(false)} className="text-slate-400 hover:text-slate-600 transition">
+              <h2 className="text-lg font-bold text-slate-900 uppercase tracking-tight">
+                {editingId ? "Editar producto" : "Crear nuevo producto"}
+              </h2>
+              <button onClick={resetForm} className="text-slate-400 hover:text-slate-600 transition">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
               </button>
             </div>
             
-            <form onSubmit={handleAddProduct} className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <form onSubmit={handleSaveProduct} className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
               <div className="space-y-4">
                 <div>
                   <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Nombre del Producto</label>
@@ -176,7 +224,7 @@ export default function EmpresaInventarioPage() {
                 </div>
                 <div>
                   <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">Imagen Referencial</label>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 mb-3">
                     <div className="h-11 w-11 shrink-0 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden">
                       {photoPreview ? (
                         <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
@@ -191,13 +239,17 @@ export default function EmpresaInventarioPage() {
                       </div>
                     </label>
                   </div>
+                  <label className="flex items-center gap-2 cursor-pointer mt-2 pl-1">
+                    <input type="checkbox" checked={formIgv} onChange={e => setFormIgv(e.target.checked)} className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500/20 border-slate-300" />
+                    <span className="text-[11px] font-bold uppercase tracking-wide text-slate-600">Aplica IGV (18%)</span>
+                  </label>
                 </div>
               </div>
 
               <div className="flex items-end pb-0.5">
                 <button type="submit" disabled={adding}
                   className="w-full h-11 rounded-xl bg-blue-600 text-white text-sm font-black uppercase tracking-widest hover:bg-blue-500 transition shadow-lg shadow-blue-600/20 disabled:opacity-60">
-                  {adding ? "Guardando..." : "Registrar Producto"}
+                  {adding ? "Guardando..." : (editingId ? "Actualizar Producto" : "Registrar Producto")}
                 </button>
               </div>
             </form>
@@ -269,19 +321,30 @@ export default function EmpresaInventarioPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4 text-center">
-                        <span className={`inline-flex rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-widest border ${
+                        <span className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-widest border ${
                           (p.stock ?? 0) <= 5 
                             ? "bg-rose-50 text-rose-700 border-rose-100" 
                             : "bg-emerald-50 text-emerald-700 border-emerald-100"
                         }`}>
                           {(p.stock ?? 0) <= 5 ? "Stock Bajo" : "Disponible"}
                         </span>
+                        {p.igv && (
+                          <span className="block mt-1 text-[9px] font-black uppercase tracking-widest text-blue-600 bg-blue-50/50 rounded inline-block px-1.5 border border-blue-100">
+                            +IGV
+                          </span>
+                        )}
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <button type="button" onClick={() => deleteProduct(p.id)}
-                          className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-transparent text-slate-300 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-100 transition shadow-sm">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
-                        </button>
+                        <div className="flex items-center justify-end gap-2">
+                          <button type="button" onClick={() => openEdit(p)} title="Editar producto"
+                            className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-transparent text-slate-400 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-100 transition shadow-sm">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+                          </button>
+                          <button type="button" onClick={() => deleteProduct(p.id)} title="Eliminar producto"
+                            className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-transparent text-slate-400 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-100 transition shadow-sm">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
